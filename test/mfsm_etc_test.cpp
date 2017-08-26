@@ -2,9 +2,10 @@
 
 #include <type_traits>
 #include <functional>
+#include <string>
 
 
-TEST_CASE("std::function", "[mfsm]")
+TEST_CASE("std::function", "[etc]")
 {
     std::function<void()> f0 = []{ return 10; };
     f0();
@@ -83,7 +84,7 @@ auto return_type_of(L l)
 }
 
 
-TEST_CASE("getting the argument type list of lambda expression function", "[mfsm]")
+TEST_CASE("getting the argument type list of lambda expression function", "[etc]")
 {
     // compile error: lambda expression in an unevaluated operand
     /*
@@ -114,7 +115,7 @@ TEST_CASE("getting the argument type list of lambda expression function", "[mfsm
 }
 
 
-TEST_CASE("getting the return type of lambda expression function", "[mfsm]")
+TEST_CASE("getting the return type of lambda expression function", "[etc]")
 {
     // compile error: lambda expression in an unevaluated operand
     //decltype([](int i){ return i; }) * pL;
@@ -129,4 +130,56 @@ TEST_CASE("getting the return type of lambda expression function", "[mfsm]")
     return_type_of_impl([]{ return 10; });
     
     // NOTE: it seems that we can't use std::function to get the return type.
+}
+
+
+// NOTE: this feature is not implemented in LLVM 4.0.0.
+/*
+template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
+template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
+*/
+
+
+template<typename L, typename... Ls>
+struct overload : L, overload<Ls...>
+{
+    overload(L l, Ls... ls)
+        : L(l), overload<Ls...>(ls...)
+    { }
+
+    using L::operator();
+    using overload<Ls...>::operator();
+};
+
+template<class L>
+struct overload<L> : L
+{
+    overload(L l)
+        : L(l)
+    { }
+
+    using L::operator();
+};
+
+
+template <class... L>
+auto make_overload(L... l)
+{
+    return overload<L...>(l...);
+}
+
+
+TEST_CASE("lambda expression overload", "[etc]")
+{
+    auto f = make_overload(
+        []{},
+        [](int i){ return i + i; },
+        [](double d){ return d; },
+        [](std::string s){ return s; }
+    );
+
+    f();
+    CHECK(f(10) == 20);
+    CHECK(f(10.) == 10.);
+    CHECK(f("abc") == "abc");
 }
