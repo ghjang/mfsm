@@ -21,6 +21,11 @@ TEST_CASE("std::function", "[mfsm]")
                 void
         >
     );
+
+    struct S { };
+
+    // compiler error: no viable conversion from the lambda to 'std::function<void (S)>'
+    //std::function<void(S)> f2 = [](int i){ return i; };
 }
 
 
