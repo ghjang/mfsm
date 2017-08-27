@@ -5,5 +5,7 @@
 
 TEST_CASE("mfsm", "[mfsm]")
 {
+    mfsm::user_input_echo echoFsm;
     
+    //echoFsm();
 }
