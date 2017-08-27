@@ -82,7 +82,45 @@ namespace mfsm
     public:
         auto operator () ()
         {
-            //auto const & id2ActionMap = static_cast<FsmDef *>(this)->get_state_id_to_action_map();
+            using arg_sum_t = typename FsmDef::arg_sum_t;
+            using ret_sum_t = typename FsmDef::ret_sum_t;
+
+            bool isExit = false;
+            auto const & actionFunc = static_cast<FsmDef *>(this)->get_action_func();
+            arg_sum_t arg = meta::void_{};  // make it enter the initial state.
+            ret_sum_t ret;
+
+            do {
+                ret = actionFunc(arg);
+                std::visit(
+                    [&isExit, &arg](auto r) {
+                        if constexpr (std::is_same_v<decltype(r), meta::void_>) {
+                            // if the terminal state is reached,
+                            isExit = true;
+                        }
+                        else if constexpr (skull::prelude::is_same_template_v<decltype(r), std::variant<>>) {
+                            // if the next possible transition states are multiple,
+                            //      TODO: if nested states also have multiple states successively? recursion?
+                            std::visit(
+                                [&isExit, &arg](auto rr) {
+                                    if constexpr (std::is_same_v<decltype(rr), meta::void_>) {
+                                        isExit = true;
+                                    }
+                                    else {
+                                        arg = rr;
+                                    }
+                                },
+                                r
+                            );
+                        }
+                        else {
+                            arg = r;
+                        }
+                    },
+                    ret
+                );
+            }
+            while (!isExit);
         }
     };
 } // namespace mfsm
