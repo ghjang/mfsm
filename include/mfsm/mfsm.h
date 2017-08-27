@@ -12,6 +12,9 @@
 #include "mfsm/lambda_overloading.h"
 
 
+template <typename T>
+struct TD;
+
 namespace mfsm
 {
     template <typename FsmDef>
@@ -19,39 +22,58 @@ namespace mfsm
     {
     private:
         template <typename F, typename... State>
-        static auto calc_action_func_sig_impl(F && f, meta::type_list<State...>)
+        auto calc_ret_sum_type_impl(F && f, meta::type_list<State...>)
         {
             return meta::id<
-                        std::variant<
-                                std::function<decltype(f(State{}))(State)>...
+                        meta::rename_template_t<
+                                meta::map_t<
+                                        meta::void_to_void_,
+                                        meta::type_list<decltype(f(State{}))...>
+                                >,
+                                std::variant
                         >
                    >{};
         }
 
-    protected:
-        template <typename StateEnter, typename... StateDef>
-        static auto calc_action_func_sig(StateEnter && startState, StateDef &&... defs)
+        template <typename StateEnterDef, typename... StateDef>
+        auto calc_ret_sum_type(StateEnterDef && startState, StateDef &&... state)
         {          
-            return calc_action_func_sig_impl(
-                        mfsm::util::make_overload(
-                                        [ss = std::forward<StateEnter>(startState)](meta::void_) { return ss(); },
-                                        std::forward<StateDef>(defs)...
+            return calc_ret_sum_type_impl(
+                        util::make_overload(
+                                [ss = startState](meta::void_) { return ss(); },
+                                state...
                         ),
                         typename FsmDef::state_list_t{}
                    );
         }
 
-        template <typename StateEnter, typename... StateDef>
-        auto build_fsm(StateEnter && startState, StateDef &&... defs)
+    protected:
+        template <typename StateEnterDef, typename... StateDef>
+        auto build_fsm(StateEnterDef && startState, StateDef &&... state)
         {
-            using state_id_to_action_map_t = typename FsmDef::state_id_to_action_map_t;
-            
-            state_id_to_action_map_t id2ActionMap{
-                [ss = std::forward<StateEnter>(startState)](meta::void_) { return ss(); },
-                std::forward<StateDef>(defs)...
-            };
+            auto o = util::make_overload(
+                            [ss = std::forward<StateEnterDef>(startState)](meta::void_) { return ss(); },
+                            std::forward<StateDef>(state)...
+                     );
 
-            return id2ActionMap;
+            using state_sum_t = typename FsmDef::state_sum_t;
+            using ret_sum_t = typename decltype(calc_ret_sum_type(startState, state...))::type;
+
+            //TD<ret_sum_t> td;
+
+            return [o](state_sum_t ss) -> ret_sum_t {
+                return std::visit(
+                            [&o](auto s) {
+                                if constexpr (std::is_same_v<decltype(o(s)), void>) {
+                                    return ret_sum_t{ meta::void_{} };
+                                }
+                                else {
+                                    return ret_sum_t{ o(s) };
+                                }
+                            },
+                            ss
+                       );
+            };
         }
 
     public:
@@ -73,30 +95,19 @@ public:
     struct Exit { };
 
     using state_list_t = mfsm::meta::type_list<mfsm::meta::void_, Init, Read, Process, Exit>;
-    
-private:
-    inline static auto const action_func_sig_val_ =
-                                calc_action_func_sig(
-                                    [](void)    -> Init                         { return Init{}; },
-                                    [](Init)    -> Read                         { return Read{}; },
-                                    [](Read)    -> std::variant<Process, Exit>  { return Process{}; },
-                                    [](Process) -> Read                         { return Read{}; },
-                                    [](Exit)    -> void                         { }
-                                );
-    
-public:
-    using action_func_sig_t = decltype(action_func_sig_val_)::type;
-    using state_id_to_action_map_t = std::array<action_func_sig_t, mfsm::meta::length_v<state_list_t>>;
+    using state_sum_t = std::variant<mfsm::meta::void_, Init, Read, Process, Exit>;
+
+    using action_func_sig_t = std::function<state_sum_t(state_sum_t)>;
 
 public:
-    using fsm_base<user_input_echo>::operator ();
+    using mfsm::fsm_base<user_input_echo>::operator ();
 
 public:
-    state_id_to_action_map_t const & get_state_id_to_action_map() const
-    { return id2Action_; }
+    action_func_sig_t const & get_action_func() const
+    { return actionFunc_; }
 
 private:
-    state_id_to_action_map_t const id2Action_ = build_fsm(
+    action_func_sig_t const actionFunc_ = build_fsm(
         [](void)    -> Init                         { return Init{}; },
         [](Init)    -> Read                         { return Read{}; },
         [](Read)    -> std::variant<Process, Exit>  { return Process{}; },
@@ -107,3 +118,41 @@ private:
 
 
 #endif // MFSM_H
+
+
+/*
+'TD<
+        std::__1::variant<
+                    user_input_echo::Init,
+                    user_input_echo::Read,
+                    std::__1::variant<user_input_echo::Process, user_input_echo::Exit>,
+                    user_input_echo::Read,
+                    mfsm::meta::void_
+        >
+>'
+*/
+
+
+/*
+no viable conversion
+
+from
+'(lambda at /Users/gilhojang/GitHub/mfsm/test/../include/mfsm/mfsm.h:75:20)'
+
+to 'const action_func_sig_t' (aka 'const function<
+                                            variant<
+                                                mfsm::meta::void_,
+                                                user_input_echo::Init,
+                                                user_input_echo::Read,
+                                                user_input_echo::Process,
+                                                user_input_echo::Exit
+                                            >
+                                                (variant<
+                                                    mfsm::meta::void_,
+                                                    user_input_echo::Init,
+                                                    user_input_echo::Read,
+                                                    user_input_echo::Process,
+                                                    user_input_echo::Exit
+                                                 >)
+                                   >')
+*/
