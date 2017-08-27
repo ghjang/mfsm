@@ -7,9 +7,17 @@
 #include <array>
 #include <variant>
 
+#include "mfsm/lambda_overloading.h"
+
 
 namespace mfsm
 {
+    template <typename T>
+    struct id
+    {
+        using type = T;
+    };
+
     template <typename... T>
     struct type_list
     { };
@@ -22,7 +30,7 @@ namespace mfsm
     {
         static constexpr auto value = sizeof...(T);
     };
-    
+
 
     template <typename FsmDef>
     class fsm_base
@@ -38,13 +46,20 @@ namespace mfsm
         static auto calc_action_func_sig(StateEnter && startState, StateDef &&... defs)
         {
             using elem_t = std::variant<
-                                std::function<void()>,
+                                std::function<typename FsmDef::Init()>,
                                 std::function<typename FsmDef::Read(typename FsmDef::Init)>,
                                 std::function<std::variant<typename FsmDef::Process, typename FsmDef::Exit>(typename FsmDef::Read)>,
                                 std::function<typename FsmDef::Read(typename FsmDef::Process)>,
                                 std::function<void(typename FsmDef::Exit)>
                             >;
-            return elem_t{};
+            return id<elem_t>{};
+
+            /*
+            auto l = mfsm::util::make_overload(
+                                    std::forward<StateEnter>(startState),
+                                    std::forward<StateDef>(defs)...
+                     );
+            */
         }
 
         template <typename StateEnter, typename... StateDef>
@@ -83,7 +98,7 @@ namespace mfsm
                                     );
         
     public:
-        using action_func_sig_t = std::decay_t<decltype(action_func_sig_val_)>;
+        using action_func_sig_t = decltype(action_func_sig_val_)::type;
         using state_id_to_action_map_t = std::array<action_func_sig_t, 1 + length<state_list_t>::value>;
 
     public:
