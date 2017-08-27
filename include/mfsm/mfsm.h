@@ -136,7 +136,7 @@ public:
     void init() { std::cout << "init.\n"; }
     void read() { std::cout << "input: "; std::getline(std::cin, m_inputLine); }
     void process() { std::cout << "output: " << m_inputLine << '\n'; }
-    void exit_() { std::cout << "exit.\n" << std::endl; }
+    void exit_() { std::cout << "exit.\n" << std::endl; }   // TODO: this is not called. why??
 
 public:
     struct Init { };
