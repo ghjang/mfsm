@@ -3,6 +3,7 @@
 #include <type_traits>
 #include <functional>
 #include <string>
+#include <variant>
 
 #include "mfsm/lambda_overloading.h"
 
@@ -31,6 +32,19 @@ TEST_CASE("std::function", "[etc]")
     //std::function<void(S)> f2 = [](int i){ return i; };
 }
 
+TEST_CASE("std::variant", "[etc]")
+{
+    struct A { };
+    struct B { };
+
+    struct C
+    {
+        C() = delete;
+    };
+
+    std::variant<A, B> aOrb;
+    std::variant<A, C> aOrC;
+}
 
 template <typename T>
 struct id
