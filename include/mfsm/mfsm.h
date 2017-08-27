@@ -10,6 +10,20 @@
 
 namespace mfsm
 {
+    template <typename... T>
+    struct type_list
+    { };
+
+    template <typename TypeList>
+    struct length;
+
+    template <typename... T>
+    struct length<type_list<T...>>
+    {
+        static constexpr auto value = sizeof...(T);
+    };
+    
+
     template <typename FsmDef>
     class fsm_base
     {
@@ -36,42 +50,15 @@ namespace mfsm
         template <typename StateEnter, typename... StateDef>
         auto build_fsm(StateEnter && startState, StateDef &&... defs)
         {
-            /*
-            using elem_t = std::variant<
-                                    std::decay_t<StateEnter>,
-                                    std::decay_t<StateDef>...
-                           >;
-            */
-
-            using elem_t = std::variant<
-                                    std::function<void()>,
-                                    std::function<typename FsmDef::Read(typename FsmDef::Init)>,
-                                    std::function<std::variant<typename FsmDef::Process, typename FsmDef::Exit>(typename FsmDef::Read)>,
-                                    std::function<typename FsmDef::Read(typename FsmDef::Process)>,
-                                    std::function<void(typename FsmDef::Exit)>
-                           >;
+            using state_id_to_action_map_t = typename FsmDef::state_id_to_action_map_t;
             
-            std::array<elem_t, 1 + sizeof...(defs)> id2ActionMap{
+            state_id_to_action_map_t id2ActionMap{
                 std::forward<StateEnter>(startState),
                 std::forward<StateDef>(defs)...
             };
 
             return id2ActionMap;
         }
-    };
-
-
-    template <typename... T>
-    struct type_list
-    { };
-
-    template <typename TypeList>
-    struct length;
-
-    template <typename... T>
-    struct length<type_list<T...>>
-    {
-        static constexpr auto value = sizeof...(T);
     };
 
 
@@ -96,7 +83,7 @@ namespace mfsm
                                     );
         
     public:
-        using action_func_sig_t = decltype(action_func_sig_val_);                                        
+        using action_func_sig_t = std::decay_t<decltype(action_func_sig_val_)>;
         using state_id_to_action_map_t = std::array<action_func_sig_t, 1 + length<state_list_t>::value>;
 
     public:
