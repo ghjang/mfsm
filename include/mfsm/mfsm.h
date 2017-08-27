@@ -4,9 +4,10 @@
 
 #include <type_traits>
 #include <functional>
-#include <array>
-#include <tuple>
 #include <variant>
+
+#include <string>
+#include <iostream>
 
 #include "skull/prelude.h"
 #include "skull/app.h"
@@ -130,6 +131,14 @@ struct user_input_echo
             : mfsm::fsm_base<user_input_echo>
 {
 public:
+    std::string m_inputLine;
+
+    void init() { std::cout << "init.\n"; }
+    void read() { std::cout << "input: "; std::getline(std::cin, m_inputLine); }
+    void process() { std::cout << "output: " << m_inputLine << '\n'; }
+    void exit_() { std::cout << "exit.\n" << std::endl; }
+
+public:
     struct Init { };
     struct Read { };
     struct Process { };
@@ -158,11 +167,11 @@ public:
 
 private:
     action_func_sig_t const actionFunc_ = build_fsm(
-        [](void)    -> Init                         { return Init{}; },
-        [](Init)    -> Read                         { return Read{}; },
-        [](Read)    -> std::variant<Process, Exit>  { return Process{}; },
-        [](Process) -> Read                         { return Read{}; },
-        [](Exit)    -> void                         { }
+        [this](void)    -> Init                         { return Init{}; },
+        [this](Init)    -> Read                         { init(); return Read{}; },
+        [this](Read)    -> std::variant<Process, Exit>  { read(); if (!m_inputLine.empty()) return Process{}; else return Exit{}; },
+        [this](Process) -> Read                         { process(); return Read{}; },
+        [this](Exit)    -> void                         { std::cout << "....\n"; exit_(); }
     );
 };
 
