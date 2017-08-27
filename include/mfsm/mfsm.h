@@ -22,8 +22,9 @@ namespace mfsm
     {
     private:
         template <typename F, typename... State>
-        auto calc_ret_sum_type_impl(F && f, meta::type_list<State...>)
+        static auto calc_ret_sum_type_impl(F && f, meta::type_list<State...>)
         {
+            /*
             return meta::id<
                         meta::rename_template_t<
                                 meta::map_t<
@@ -33,10 +34,21 @@ namespace mfsm
                                 std::variant
                         >
                    >{};
+            */
+
+            return meta::id<
+                        std::variant<
+                                typename FsmDef::Init,
+                                typename FsmDef::Read,
+                                std::variant<typename FsmDef::Process, typename FsmDef::Exit>,
+                                meta::void_
+                        >
+                   >{};
         }
 
+    protected:
         template <typename StateEnterDef, typename... StateDef>
-        auto calc_ret_sum_type(StateEnterDef && startState, StateDef &&... state)
+        static auto calc_ret_sum_type(StateEnterDef && startState, StateDef &&... state)
         {          
             return calc_ret_sum_type_impl(
                         util::make_overload(
@@ -47,7 +59,6 @@ namespace mfsm
                    );
         }
 
-    protected:
         template <typename StateEnterDef, typename... StateDef>
         auto build_fsm(StateEnterDef && startState, StateDef &&... state)
         {
@@ -56,12 +67,12 @@ namespace mfsm
                             std::forward<StateDef>(state)...
                      );
 
-            using state_sum_t = typename FsmDef::state_sum_t;
-            using ret_sum_t = typename decltype(calc_ret_sum_type(startState, state...))::type;
+            using arg_sum_t = typename FsmDef::arg_sum_t;
+            using ret_sum_t = typename FsmDef::ret_sum_t;
 
             //TD<ret_sum_t> td;
 
-            return [o](state_sum_t ss) -> ret_sum_t {
+            return [o](arg_sum_t as) -> ret_sum_t {
                 return std::visit(
                             [&o](auto s) {
                                 if constexpr (std::is_same_v<decltype(o(s)), void>) {
@@ -71,7 +82,7 @@ namespace mfsm
                                     return ret_sum_t{ o(s) };
                                 }
                             },
-                            ss
+                            as
                        );
             };
         }
@@ -95,12 +106,24 @@ public:
     struct Exit { };
 
     using state_list_t = mfsm::meta::type_list<mfsm::meta::void_, Init, Read, Process, Exit>;
-    using state_sum_t = std::variant<mfsm::meta::void_, Init, Read, Process, Exit>;
-
-    using action_func_sig_t = std::function<state_sum_t(state_sum_t)>;
 
 public:
     using mfsm::fsm_base<user_input_echo>::operator ();
+    
+private:
+    inline static auto const ret_sum_t_val_ = mfsm::fsm_base<user_input_echo>::calc_ret_sum_type(
+                                                    [](void)    -> Init                         { return Init{}; },
+                                                    [](Init)    -> Read                         { return Read{}; },
+                                                    [](Read)    -> std::variant<Process, Exit>  { return Process{}; },
+                                                    [](Process) -> Read                         { return Read{}; },
+                                                    [](Exit)    -> void                         { }
+                                              );
+
+public:
+    using arg_sum_t = std::variant<mfsm::meta::void_, Init, Read, Process, Exit>;
+    using ret_sum_t = typename decltype(ret_sum_t_val_)::type;
+
+    using action_func_sig_t = std::function<ret_sum_t(arg_sum_t)>;
 
 public:
     action_func_sig_t const & get_action_func() const
