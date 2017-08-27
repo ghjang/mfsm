@@ -15,21 +15,12 @@
 #include "mfsm/lambda_overloading.h"
 
 
-template <typename T>
-struct TD;
-
 namespace mfsm
 {
     template <typename FsmDef>
     class fsm_base
     {
-    private:
-        template <typename T>
-        struct void_to_void_
-        {
-            using type = T;
-        };
-    
+    private: 
         template <typename F, typename... State>
         static auto calc_ret_sum_type_impl(F && f, skull::prelude::TL<State...>)
         {
@@ -73,8 +64,6 @@ namespace mfsm
             using arg_sum_t = typename FsmDef::arg_sum_t;
             using ret_sum_t = typename FsmDef::ret_sum_t;
 
-            //TD<ret_sum_t> td;
-
             return [o](arg_sum_t as) -> ret_sum_t {
                 return std::visit(
                             [&o](auto s) {
@@ -110,9 +99,6 @@ public:
 
     using state_list_t = skull::prelude::TL<mfsm::meta::void_, Init, Read, Process, Exit>;
 
-public:
-    using mfsm::fsm_base<user_input_echo>::operator ();
-    
 private:
     inline static auto const ret_sum_t_val_ = mfsm::fsm_base<user_input_echo>::calc_ret_sum_type(
                                                     [](void)    -> Init                         { return Init{}; },
