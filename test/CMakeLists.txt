@@ -34,6 +34,9 @@ else()
     message(FATAL_ERROR "Could not find boost!")
 endif()
 
+set(SKULL_ROOT "../../skull/include")
+include_directories(${SKULL_ROOT})
+
 set(MFSM_ROOT "../include")
 include_directories(${MFSM_ROOT})
 

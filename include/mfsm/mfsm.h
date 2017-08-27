@@ -8,6 +8,9 @@
 #include <tuple>
 #include <variant>
 
+#include "skull/prelude.h"
+#include "skull/app.h"
+
 #include "mfsm/meta.h"
 #include "mfsm/lambda_overloading.h"
 
@@ -21,27 +24,27 @@ namespace mfsm
     class fsm_base
     {
     private:
-        template <typename F, typename... State>
-        static auto calc_ret_sum_type_impl(F && f, meta::type_list<State...>)
+        template <typename T>
+        struct void_to_void_
         {
-            /*
-            return meta::id<
-                        meta::rename_template_t<
-                                meta::map_t<
-                                        meta::void_to_void_,
-                                        meta::type_list<decltype(f(State{}))...>
-                                >,
-                                std::variant
-                        >
-                   >{};
-            */
+            using type = T;
+        };
+    
+        template <typename F, typename... State>
+        static auto calc_ret_sum_type_impl(F && f, skull::prelude::TL<State...>)
+        {
+            using namespace skull::prelude;
+            using skull::app::unique_t;
 
-            return meta::id<
-                        std::variant<
-                                typename FsmDef::Init,
-                                typename FsmDef::Read,
-                                std::variant<typename FsmDef::Process, typename FsmDef::Exit>,
-                                meta::void_
+            return id<
+                        rename_template_t<
+                            unique_t<
+                                map_t<
+                                    quote<meta::void_to_void_>,
+                                    TL<decltype(f(State{}))...>
+                                >
+                            >,
+                            std::variant
                         >
                    >{};
         }
@@ -105,7 +108,7 @@ public:
     struct Process { };
     struct Exit { };
 
-    using state_list_t = mfsm::meta::type_list<mfsm::meta::void_, Init, Read, Process, Exit>;
+    using state_list_t = skull::prelude::TL<mfsm::meta::void_, Init, Read, Process, Exit>;
 
 public:
     using mfsm::fsm_base<user_input_echo>::operator ();
@@ -141,41 +144,3 @@ private:
 
 
 #endif // MFSM_H
-
-
-/*
-'TD<
-        std::__1::variant<
-                    user_input_echo::Init,
-                    user_input_echo::Read,
-                    std::__1::variant<user_input_echo::Process, user_input_echo::Exit>,
-                    user_input_echo::Read,
-                    mfsm::meta::void_
-        >
->'
-*/
-
-
-/*
-no viable conversion
-
-from
-'(lambda at /Users/gilhojang/GitHub/mfsm/test/../include/mfsm/mfsm.h:75:20)'
-
-to 'const action_func_sig_t' (aka 'const function<
-                                            variant<
-                                                mfsm::meta::void_,
-                                                user_input_echo::Init,
-                                                user_input_echo::Read,
-                                                user_input_echo::Process,
-                                                user_input_echo::Exit
-                                            >
-                                                (variant<
-                                                    mfsm::meta::void_,
-                                                    user_input_echo::Init,
-                                                    user_input_echo::Read,
-                                                    user_input_echo::Process,
-                                                    user_input_echo::Exit
-                                                 >)
-                                   >')
-*/
