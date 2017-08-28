@@ -29,11 +29,26 @@ struct user_input_echo
     DEFINE_STATE_TYPE(Init, Read, Process, Exit)
 
     DEFINE_STATE_TRANSITION_TABLE(
-        [](void)    -> Init                         { return Init{}; },
-        [](Init)    -> Read                         { init(); return Read{}; },
-        [](Read)    -> std::variant<Process, Exit>  { if (read()) return Process{}; else return Exit{}; },
-        [](Process) -> Read                         { process(); return Read{}; },
-        [](Exit)    -> void                         { exit(); }
+        [](void)    -> Init                         {
+                                                        return Init{};  // enter Init state.
+                                                    },
+        [](Init)    -> Read                         {
+                                                        init();         // do the initialization.
+                                                        return Read{};  // move to Read state.
+                                                    },
+        [](Read)    -> std::variant<Process, Exit>  {
+                                                        if (read())             // if read some data,
+                                                            return Process{};   // move to Process state.
+                                                        else                    // or else,
+                                                            return Exit{};      // move to Exit state.
+                                                    },
+        [](Process) -> Read                         {
+                                                        process();      // process the data.
+                                                        return Read{};  // go back to Read state.
+                                                    },
+        [](Exit)    -> void                         {
+                                                        exit();         // exit this FSM execution.
+                                                    }
     )
 };
 
