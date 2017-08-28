@@ -69,6 +69,7 @@ namespace mfsm
                 return std::visit(
                             [&o](auto s) {
                                 if constexpr (std::is_same_v<decltype(o(s)), void>) {
+                                    o(s);
                                     return ret_sum_t{ meta::void_{} };
                                 }
                                 else {
@@ -133,10 +134,10 @@ struct user_input_echo
 public:
     std::string m_inputLine;
 
-    void init() { std::cout << "init.\n"; }
+    void init() { std::cout << "Hello~!\n"; }
     void read() { std::cout << "input: "; std::getline(std::cin, m_inputLine); }
     void process() { std::cout << "output: " << m_inputLine << '\n'; }
-    void exit_() { std::cout << "exit.\n" << std::endl; }   // TODO: this is not called. why??
+    void exit() { std::cout << "Good Bye!.\n" << std::endl; }
 
 public:
     struct Init { };
@@ -171,7 +172,7 @@ private:
         [this](Init)    -> Read                         { init(); return Read{}; },
         [this](Read)    -> std::variant<Process, Exit>  { read(); if (!m_inputLine.empty()) return Process{}; else return Exit{}; },
         [this](Process) -> Read                         { process(); return Read{}; },
-        [this](Exit)    -> void                         { std::cout << "....\n"; exit_(); }
+        [this](Exit)    -> void                         { exit(); }
     );
 };
 
