@@ -38,7 +38,6 @@ namespace mfsm
                    >{};
         }
 
-    protected:
         template <typename StateEnterDef, typename... StateDef>
         static auto calc_ret_sum_type(StateEnterDef && startState, StateDef &&... state)
         {          
@@ -51,17 +50,19 @@ namespace mfsm
                    );
         }
 
+    protected:
         template <typename StateEnterDef, typename... StateDef>
-        auto build_fsm(StateEnterDef && startState, StateDef &&... state)
-        {
+        static auto build_fsm(StateEnterDef && startState, StateDef &&... state)
+        {            
+            auto ret_sum_t_val_ = calc_ret_sum_type(startState, state...);
+
+            using arg_sum_t = skull::prelude::rename_template_t<typename FsmDef::state_list_t, std::variant>;
+            using ret_sum_t = typename decltype(ret_sum_t_val_)::type;
+
             auto o = util::make_overload(
                             [ss = std::forward<StateEnterDef>(startState)](meta::void_) { return ss(); },
                             std::forward<StateDef>(state)...
-                     );
-
-            using arg_sum_t = typename FsmDef::arg_sum_t;
-            using ret_sum_t = typename FsmDef::ret_sum_t;
-
+                     );                 
             return [o](arg_sum_t as) -> ret_sum_t {
                 return std::visit(
                             [&o](auto s) {
@@ -81,14 +82,15 @@ namespace mfsm
     public:
         auto operator () ()
         {
-            using arg_sum_t = typename FsmDef::arg_sum_t;
-            using ret_sum_t = typename FsmDef::ret_sum_t;
-
+            auto const & actionFunc = FsmDef::get_action_func();
+            
+            using arg_sum_t = skull::prelude::rename_template_t<typename FsmDef::state_list_t, std::variant>;
+            using ret_sum_t = decltype(actionFunc(meta::void_{}));
+            
             bool isExit = false;
-            auto const & actionFunc = static_cast<FsmDef *>(this)->get_action_func();
             arg_sum_t arg = meta::void_{};  // make it enter the initial state.
             ret_sum_t ret;
-
+            
             do {
                 ret = actionFunc(arg);
                 std::visit(
