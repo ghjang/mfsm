@@ -54,8 +54,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1z")
 link_directories(${LLVM_4_0_0_BASE}/lib)
 
 set(SOURCE_FILES
-        mfsm_test.cpp
         mfsm_etc_test.cpp
+        mfsm_user_input_echo_test.cpp
         main.cpp)
 
 add_executable(${CMAKE_PROJECT_NAME} ${SOURCE_FILES})
