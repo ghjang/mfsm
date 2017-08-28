@@ -26,15 +26,9 @@ namespace
 struct user_input_echo
             : mfsm::fsm_base<user_input_echo>
 {
-public:
-    struct Init { };
-    struct Read { };
-    struct Process { };
-    struct Exit { };
+    DEFINE_STATE_TYPE(Init, Read, Process, Exit)
 
-    using state_list_t = skull::prelude::TL<mfsm::meta::void_, Init, Read, Process, Exit>;
-
-    DEFINE_TRANSITION_TABLE(
+    DEFINE_STATE_TRANSITION_TABLE(
         [](void)    -> Init                         { return Init{}; },
         [](Init)    -> Read                         { init(); return Read{}; },
         [](Read)    -> std::variant<Process, Exit>  { if (read()) return Process{}; else return Exit{}; },
