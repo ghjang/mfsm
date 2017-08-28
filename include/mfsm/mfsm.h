@@ -126,4 +126,7 @@ namespace mfsm
 } // namespace mfsm
 
 
+#include "mfsm/helper_macro.h"
+
+
 #endif // MFSM_H

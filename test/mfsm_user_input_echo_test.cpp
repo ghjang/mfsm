@@ -34,18 +34,13 @@ public:
 
     using state_list_t = skull::prelude::TL<mfsm::meta::void_, Init, Read, Process, Exit>;
 
-public:
-    static auto const & get_action_func()
-    { return actionFunc_; }
-
-private:
-    inline static auto const actionFunc_ = build_fsm(
+    DEFINE_TRANSITION_TABLE(
         [](void)    -> Init                         { return Init{}; },
         [](Init)    -> Read                         { init(); return Read{}; },
         [](Read)    -> std::variant<Process, Exit>  { if (read()) return Process{}; else return Exit{}; },
         [](Process) -> Read                         { process(); return Read{}; },
         [](Exit)    -> void                         { exit(); }
-    );
+    )
 };
 
 
