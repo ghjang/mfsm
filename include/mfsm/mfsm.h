@@ -101,7 +101,6 @@ namespace mfsm
                         }
                         else if constexpr (skull::prelude::is_same_template_v<decltype(r), std::variant<>>) {
                             // if the next possible transition states are multiple,
-                            //      TODO: if nested states also have multiple states successively? recursion?
                             std::visit(
                                 [&isExit, &arg](auto rr) {
                                     if constexpr (std::is_same_v<decltype(rr), meta::void_>) {
