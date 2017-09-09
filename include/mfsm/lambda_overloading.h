@@ -4,39 +4,41 @@
 
 namespace mfsm::util
 {
-    // NOTE: this feature is not implemented in LLVM 4.0.0.
-    /*
-    template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
-    template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
-    */
-
-
-    template<typename L, typename... Ls>
-    struct overload : L, overload<Ls...>
+    template<class... T>
+    struct overloaded : T...
     {
-        overload(L l, Ls... ls)
-            : L(l), overload<Ls...>(ls...)
-        { }
-
-        using L::operator();
-        using overload<Ls...>::operator();
+        using T::operator()...;
     };
 
-    template<class L>
-    struct overload<L> : L
+    template<class... T> overloaded(T...) -> overloaded<T...>;
+
+
+    template<typename x, typename... xs>
+    struct overload : x, overload<xs...>
     {
-        overload(L l)
-            : L(l)
+        overload(x head, xs... tail)
+            : x(head), overload<xs...>(tail...)
         { }
 
-        using L::operator();
+        using x::operator();
+        using overload<xs...>::operator();
+    };
+
+    template<class x>
+    struct overload<x> : x
+    {
+        overload(x head)
+            : x(head)
+        { }
+
+        using x::operator();
     };
 
 
-    template <class... L>
-    auto make_overload(L... l)
+    template <class... LambdaExpr>
+    auto make_overload(LambdaExpr... l)
     {
-        return overload<L...>(l...);
+        return overload<LambdaExpr...>(l...);
     }
 
 } // namespace mfsm::util
