@@ -4,14 +4,28 @@
 
 namespace mfsm::util
 {
+#if __clang_major__ >= 5
+
     template<class... T>
-    struct overloaded : T...
+    struct overload : T...
     {
+        overload(T... t)
+            : T{ t }...
+        { }
+
         using T::operator()...;
     };
 
-    template<class... T> overloaded(T...) -> overloaded<T...>;
+    template<class... T> overload(T...) -> overload<T...>;
 
+
+    template <class... LambdaExpr>
+    auto make_overload(LambdaExpr... l)
+    {
+        return overload(l...);
+    }
+
+#else
 
     template<typename x, typename... xs>
     struct overload : x, overload<xs...>
@@ -40,6 +54,8 @@ namespace mfsm::util
     {
         return overload<LambdaExpr...>(l...);
     }
+
+# endif // __clang_major__ >= 5
 
 } // namespace mfsm::util
 
