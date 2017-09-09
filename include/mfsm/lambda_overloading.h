@@ -16,7 +16,7 @@ namespace mfsm::util
         using T::operator()...;
     };
 
-    template<typename... T> overload(T...) -> overload<T...>;
+    template <typename... T> overload(T...) -> overload<T...>;
 
 
     template <typename... LambdaExpr>
