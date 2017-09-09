@@ -6,7 +6,7 @@ namespace mfsm::util
 {
 #if __clang_major__ >= 5
 
-    template<class... T>
+    template<typename... T>
     struct overload : T...
     {
         overload(T... t)
@@ -16,10 +16,10 @@ namespace mfsm::util
         using T::operator()...;
     };
 
-    template<class... T> overload(T...) -> overload<T...>;
+    template<typename... T> overload(T...) -> overload<T...>;
 
 
-    template <class... LambdaExpr>
+    template <typename... LambdaExpr>
     auto make_overload(LambdaExpr... l)
     {
         return overload(l...);
@@ -38,7 +38,7 @@ namespace mfsm::util
         using overload<xs...>::operator();
     };
 
-    template<class x>
+    template<typename x>
     struct overload<x> : x
     {
         overload(x head)
@@ -49,7 +49,7 @@ namespace mfsm::util
     };
 
 
-    template <class... LambdaExpr>
+    template <typename... LambdaExpr>
     auto make_overload(LambdaExpr... l)
     {
         return overload<LambdaExpr...>(l...);
